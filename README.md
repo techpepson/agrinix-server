@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
@@ -96,3 +97,7 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+=======
+# agrinix-server
+The server reposittory for the Agrinix app, which is a crop disease detection app, aimed at helping farmers detect diseases that affect their crops. The server should be developed to scale when necessary.
+>>>>>>> a4ec054785968c98f5ca1a846b27a342274fbbeb
