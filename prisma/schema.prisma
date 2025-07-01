@@ -22,22 +22,50 @@ model User {
   profilePicture  String?
   isEmailVerified Boolean? @default(false)
   emailToken      String?
+  crops           Crop[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model Crop {
-  id Int @id @unique @default(autoincrement())
+  id         Int     @id @unique @default(autoincrement())
+  user       User    @relation(fields: [userId], references: [id])
+  name       String
+  infections Disease @relation(fields: [diseaseId], references: [id])
+  diseaseId  Int
+  userId     Int
 }
 
 model Disease {
-  id Int @id @unique @default(autoincrement())
-}
-
-model Image {
-  id Int @id @unique @default(autoincrement())
+  id                          Int      @id @unique @default(autoincrement())
+  crops                       Crop[]
+  diseaseTop                  String
+  diseaseClass                String
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+  diseaseImages               Image[]
+  diseaseDescription          String
+  inferenceId                 String
+  diseasePredictionConfidence Int
+  diseaseSymptoms             String[]
+  diseasePrevention           String[]
+  diseaseCauses               String[]
+  accuracy                    Int
 }
 
 model Message {
   id Int @id @unique @default(autoincrement())
+}
+
+model Image {
+  id          Int      @id @unique @default(autoincrement())
+  imageUrl    String[]
+  imageWidth  Int
+  imageHeight Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  Disease     Disease? @relation(fields: [diseaseId], references: [id])
+  diseaseId   Int?
 }
 
 model Response {
@@ -50,4 +78,12 @@ model Notification {
 
 model Logs {
   id Int @id @unique @default(autoincrement())
+}
+
+model Likes {
+  id Int @id
+}
+
+model Journal {
+  id Int @id
 }

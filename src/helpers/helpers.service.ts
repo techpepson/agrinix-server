@@ -5,6 +5,7 @@ import {
   InternalServerErrorException,
   Logger,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import ShortUniqueId from 'short-unique-id';
 import nodemailer from 'nodemailer';
@@ -12,6 +13,7 @@ import path from 'path';
 import * as fs from 'fs';
 import * as ejs from 'ejs';
 import { ConfigService } from '@nestjs/config';
+import cloudinary from 'src/config/cloudinary.config';
 
 @Injectable()
 export class HelpersService {
@@ -78,6 +80,55 @@ export class HelpersService {
     } catch (error) {
       this.logger?.error?.('Failed to render EJS template:', error);
       throw new InternalServerErrorException('Failed to render EJS template');
+    }
+  }
+
+  async sendEjsAsEmail(
+    emailSubject: string,
+    data: any,
+    templatePath: any,
+    emailReceiver: any,
+  ) {
+    const html = this.renderEjs(templatePath, data);
+
+    //send the email to the user
+    await this.nodemailerSetup(emailReceiver, emailSubject, html);
+  }
+
+  async uploadImage(file: Express.Multer.File) {
+    try {
+      //check if the file has a buffer
+      if (!file.buffer) {
+        throw new NotFoundException('File buffer empty');
+      }
+
+      //convert the file buffer to a base64 string
+      const base64String = file.buffer.toString('base64');
+      const mimeType = file.mimetype;
+
+      const dataUri = `data:${mimeType};base64,${base64String}`;
+
+      const uploader = await cloudinary.uploader.upload(dataUri, {
+        overwrite: true,
+        use_filename: true,
+      });
+      return {
+        secureUrl: uploader.secure_url,
+        public_id: uploader.public_id,
+        url: uploader.url,
+        createdAt: uploader.created_at,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException('File buffer not found');
+      } else if (error instanceof BadRequestException) {
+        throw new BadRequestException('Bad request received');
+      } else {
+        throw new InternalServerErrorException(
+          'An internal server error occurred while uploading image',
+        );
+      }
+      console.error(error);
     }
   }
 }
