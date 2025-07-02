@@ -15,16 +15,19 @@ datasource db {
 }
 
 model User {
-  id              Int      @id @unique @default(autoincrement())
+  id              Int            @id @unique @default(autoincrement())
   name            String
-  email           String   @unique
+  email           String         @unique
   password        String
   profilePicture  String?
-  isEmailVerified Boolean? @default(false)
+  isEmailVerified Boolean?       @default(false)
   emailToken      String?
   crops           Crop[]
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  notifications   Notification[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  message         Message[]
+  response        Response[]
 }
 
 model Crop {
@@ -54,7 +57,19 @@ model Disease {
 }
 
 model Message {
-  id Int @id @unique @default(autoincrement())
+  id               Int        @id @unique @default(autoincrement())
+  messageTitle     String
+  messageBody      String
+  messageImage     String?
+  messageLink      String?
+  messageLikes     Int        @default(0)
+  messageDislikes  Int        @default(0)
+  messageResponses Response[]
+  author           User       @relation(fields: [authorId], references: [id])
+  authorId         Int
+  messageRead      Boolean    @default(false)
+  messageCreatedAt DateTime   @default(now())
+  messageUpdatedAt DateTime   @updatedAt
 }
 
 model Image {
@@ -69,11 +84,30 @@ model Image {
 }
 
 model Response {
-  id Int @id @unique @default(autoincrement())
+  id                Int      @id @unique @default(autoincrement())
+  responseBody      String
+  responseLikes     Int      @default(0)
+  responseDislikes  Int      @default(0)
+  responseAuthor    User     @relation(fields: [responseAuthorId], references: [id])
+  responseAuthorId  Int
+  message           Message? @relation(fields: [messageId], references: [id])
+  messageId         Int?
+  responseCreatedAt DateTime @default(now())
+  responseUpdatedAt DateTime @updatedAt
 }
 
 model Notification {
-  id Int @id @unique @default(autoincrement())
+  id                    Int      @id @unique @default(autoincrement())
+  notificationTitle     String
+  notificationBody      String
+  notificationType      String
+  notificationImage     String?
+  notificationLink      String?
+  notificationRead      Boolean  @default(false)
+  notificationCreatedAt DateTime @default(now())
+  notificationUpdatedAt DateTime @updatedAt
+  receiver              User?    @relation(fields: [userId], references: [id])
+  userId                Int?
 }
 
 model Logs {

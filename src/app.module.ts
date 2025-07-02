@@ -1,3 +1,4 @@
+import { CommunityModule } from './community/community.module';
 import { CropModule } from './crops/crop.module';
 import { HelpersModule } from './helpers/helpers.module';
 import { CronService } from './jobs/cron.service';
@@ -16,6 +17,7 @@ import { JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [
+    CommunityModule,
     CropModule,
     HelpersModule,
     AuthModule,
