@@ -6,6 +6,7 @@ import {
   Req,
   Body,
   Get,
+  Delete,
 } from '@nestjs/common';
 
 import { CropService } from './crop.service';
@@ -46,5 +47,12 @@ export class CropsController {
   async fetchFarmerCrops(@Req() req: Request) {
     const email = (req.user as any)?.email;
     return await this.cropService.fetchFarmerCrops(email);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('farmer-crop')
+  async deleteFarmerCrop(@Req() req: Request, @Body('cropId') cropId: number) {
+    const email = (req.user as any)?.email;
+    return await this.cropService.deleteFarmerCrop(cropId, email);
   }
 }

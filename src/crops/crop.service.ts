@@ -50,7 +50,6 @@ export class CropService {
       //upload image to cloudinary
       const image = await this.helper.uploadImage(file);
 
-      //save the returned values to the database
       //invoke the roboflow api method
       const prediction = await this.fetchRoboflowPrediction(image.secureUrl);
 
@@ -214,6 +213,37 @@ export class CropService {
       };
     } catch (error) {
       console.error(error);
+    }
+  }
+
+  async deleteFarmerCrop(cropId: number, email: string) {
+    try {
+      const user = await this.prisma.user.findUnique({ where: { email } });
+      if (!user) {
+        throw new ForbiddenException('Access forbidden for this request');
+      }
+
+      // Find the crop and ensure the user is the owner
+      const crop = await this.prisma.crop.findUnique({ where: { id: cropId } });
+      if (!crop) {
+        throw new BadRequestException('Crop not found');
+      }
+      if (crop.userId !== user.id) {
+        throw new ForbiddenException('You are not allowed to delete this crop');
+      }
+
+      await this.prisma.crop.delete({ where: { id: cropId } });
+      return { message: 'Crop deleted successfully' };
+    } catch (error) {
+      if (
+        error instanceof ForbiddenException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'An internal server error occurred',
+      );
     }
   }
 }

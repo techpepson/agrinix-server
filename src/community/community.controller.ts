@@ -8,6 +8,7 @@ import {
   UseGuards,
   UseInterceptors,
   Query,
+  Delete,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CommunityService } from './community.service';
@@ -73,5 +74,12 @@ export class CommunityController {
   async likeResponse(@Query('id') responseId: number, @Req() req: Request) {
     const email = (req.user as any)?.email;
     return await this.communityService.LikeResponse(responseId, email);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('message')
+  async deleteMessage(@Query('id') messageId: number, @Req() req: Request) {
+    const email = (req.user as any)?.email;
+    return await this.communityService.deleteMessage(messageId, email);
   }
 }

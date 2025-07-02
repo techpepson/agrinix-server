@@ -276,4 +276,42 @@ export class CommunityService {
       );
     }
   }
+
+  async deleteMessage(messageId: number, email: string) {
+    try {
+      const user = await this.prisma.user.findUnique({ where: { email } });
+      if (!user) {
+        throw new ForbiddenException('Access forbidden for this service.');
+      }
+
+      // Find the message and ensure the user is the author
+      const message = await this.prisma.message.findUnique({
+        where: { id: messageId },
+      });
+      if (!message) {
+        throw new BadRequestException('Message not found');
+      }
+      if (message.authorId !== user.id) {
+        throw new ForbiddenException(
+          'You are not allowed to delete this message',
+        );
+      }
+
+      await this.prisma.message.delete({
+        where: { id: messageId },
+      });
+
+      return { message: 'Message deleted successfully' };
+    } catch (error) {
+      if (
+        error instanceof ForbiddenException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'An internal server error occurred',
+      );
+    }
+  }
 }
