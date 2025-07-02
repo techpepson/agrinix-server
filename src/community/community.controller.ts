@@ -82,4 +82,11 @@ export class CommunityController {
     const email = (req.user as any)?.email;
     return await this.communityService.deleteMessage(messageId, email);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('message')
+  async deleteResponse(@Query('id') responseId: number, @Req() req: Request) {
+    const email = (req.user as any)?.email;
+    return await this.communityService.deleteResponse(responseId, email);
+  }
 }

@@ -314,4 +314,42 @@ export class CommunityService {
       );
     }
   }
+
+  async deleteResponse(responseId: number, email: string) {
+    try {
+      const user = await this.prisma.user.findUnique({ where: { email } });
+      if (!user) {
+        throw new ForbiddenException('Access forbidden for this service.');
+      }
+
+      // Find the message and ensure the user is the author
+      const response = await this.prisma.response.findUnique({
+        where: { id: responseId },
+      });
+      if (!response) {
+        throw new BadRequestException('Message not found');
+      }
+      if (response.responseAuthorId !== user.id) {
+        throw new ForbiddenException(
+          'You are not allowed to delete this response',
+        );
+      }
+
+      await this.prisma.response.delete({
+        where: { id: responseId },
+      });
+
+      return { message: 'Response deleted successfully' };
+    } catch (error) {
+      if (
+        error instanceof ForbiddenException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'An internal server error occurred',
+      );
+    }
+  }
 }
