@@ -21,24 +21,21 @@ export class CommunityService {
 
   async createMessage(
     message: MessageDto,
+    messageId: number | undefined,
     email: string,
     file: Express.Multer.File,
   ) {
     try {
       const user = await this.prisma.user.findUnique({
-        where: {
-          email,
-        },
+        where: { email },
       });
 
       let messageImage: string;
 
-      //check if the user exists before sending the message
       if (!user) {
         throw new ForbiddenException('Access forbidden for this service.');
       }
 
-      //create a transaction to send the message
       await this.prisma.$transaction(async (tx) => {
         if (file) {
           if (file.buffer.length == 0) {
@@ -49,26 +46,29 @@ export class CommunityService {
             throw new BadRequestException('Image size greater than 5MB');
           }
 
-          //upload the image to cloudinary
           const image = await this.helpers.uploadImage(file);
           messageImage = image.secureUrl;
         }
 
-        //update the user with the new message
-        await tx.user.update({
-          where: {
-            email,
-          },
-          data: {
-            message: {
-              create: {
-                messageTitle: message.messageTitle,
-                messageBody: message.messageBody,
-                messageImage: messageImage ?? null,
-              },
+        if (messageId) {
+          await tx.message.update({
+            where: { id: messageId },
+            data: {
+              messageTitle: message.messageTitle,
+              messageBody: message.messageBody,
+              messageImage: messageImage ?? null,
             },
-          },
-        });
+          });
+        } else {
+          await tx.message.create({
+            data: {
+              messageTitle: message.messageTitle,
+              messageBody: message.messageBody,
+              messageImage: messageImage ?? null,
+              author: { connect: { id: user.id } },
+            },
+          });
+        }
       });
 
       return {
@@ -124,45 +124,29 @@ export class CommunityService {
   async createResponse(response: MessageResponseDto, email: string) {
     try {
       const user = await this.prisma.user.findUnique({
-        where: {
-          email,
-        },
+        where: { email },
       });
 
-      //check if the user exists
       if (!user) {
         throw new ForbiddenException('Access forbidden for this service.');
       }
 
-      //check if the message exists
-
       const message = await this.prisma.message.findUnique({
-        where: {
-          id: response.messageId,
-        },
+        where: { id: response.messageId },
       });
 
-      //check if the message exists
       if (!message) {
         throw new BadRequestException('Message not found');
       }
 
-      //create a transaction to send the response
       await this.prisma.$transaction(async (tx) => {
-        //update the message with the new response
         await tx.message.update({
-          where: {
-            id: response.messageId,
-          },
+          where: { id: response.messageId },
           data: {
             messageResponses: {
               create: {
                 responseBody: response.responseBody,
-                responseAuthor: {
-                  connect: {
-                    email,
-                  },
-                },
+                responseAuthor: { connect: { id: user.id } },
               },
             },
           },
@@ -201,11 +185,10 @@ export class CommunityService {
         throw new ForbiddenException('Access forbidden');
       }
 
-      //fetch the messages associated with a person
       const messages = await this.prisma.message.findMany({
         where: {
           author: {
-            email,
+            id: user.id,
           },
         },
       });
@@ -230,7 +213,6 @@ export class CommunityService {
     try {
       const user = await this.prisma.user.findUnique({ where: { email } });
 
-      //check if the user exists
       if (!user)
         throw new ForbiddenException('Access forbidden for this service.');
 
@@ -238,16 +220,6 @@ export class CommunityService {
         where: { id: messageId },
       });
       if (!response) throw new NotFoundException('Response not found');
-
-      // Check if already liked
-      //   const alreadyLiked = await this.prisma.responseLike.findUnique({
-      //     where: {
-      //       messageId: { userId: user.id, messageId },
-      //     },
-      //   });
-      //   if (alreadyLiked) {
-      //     throw new BadRequestException('You have already liked this response');
-      //   }
 
       await this.prisma.message.update({
         where: {
@@ -280,16 +252,6 @@ export class CommunityService {
         where: { id: responseId },
       });
       if (!response) throw new BadRequestException('Response not found');
-
-      // Check if already liked
-      //   const alreadyLiked = await this.prisma.responseLike.findUnique({
-      //     where: {
-      //       userId_responseId: { userId: user.id, responseId },
-      //     },
-      //   });
-      //   if (alreadyLiked) {
-      //     throw new BadRequestException('You have already liked this response');
-      //   }
 
       await this.prisma.response.update({
         where: {
