@@ -8,10 +8,9 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() payload: RegisterDto) {
-    const registerService = await this.authService.emailRegister(payload);
-
+    const register = await this.authService.emailRegister(payload);
     return {
-      message: registerService.message,
+      message: register.message,
     };
   }
 
@@ -28,7 +27,7 @@ export class AuthController {
   @Get('verify-email')
   async verifyEmail(
     @Query('email') email: string,
-    @Query() verificationId: string,
+    @Query('verificationId') verificationId: string,
   ) {
     return await this.authService.verifyEmail(email, verificationId);
   }

@@ -22,10 +22,10 @@ export class CommunityController {
 
   @UseGuards(JwtAuthGuard)
   @Post('message')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('image'))
   async createMessage(
     @Body() message: MessageDto,
-    messageId: number,
+    messageId: string,
     @Req() req: Request,
     @UploadedFile() file: Express.Multer.File,
   ) {
@@ -64,28 +64,28 @@ export class CommunityController {
 
   @UseGuards(JwtAuthGuard)
   @Post('message')
-  async likeMessage(@Query('id') messageId: number, @Req() req: Request) {
+  async likeMessage(@Query('id') messageId: string, @Req() req: Request) {
     const email = (req.user as any)?.email;
     return await this.communityService.LikeMessage(messageId, email);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('response')
-  async likeResponse(@Query('id') responseId: number, @Req() req: Request) {
+  async likeResponse(@Query('id') responseId: string, @Req() req: Request) {
     const email = (req.user as any)?.email;
     return await this.communityService.LikeResponse(responseId, email);
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete('message')
-  async deleteMessage(@Query('id') messageId: number, @Req() req: Request) {
+  async deleteMessage(@Query('id') messageId: string, @Req() req: Request) {
     const email = (req.user as any)?.email;
     return await this.communityService.deleteMessage(messageId, email);
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete('message')
-  async deleteResponse(@Query('id') responseId: number, @Req() req: Request) {
+  async deleteResponse(@Query('id') responseId: string, @Req() req: Request) {
     const email = (req.user as any)?.email;
     return await this.communityService.deleteResponse(responseId, email);
   }

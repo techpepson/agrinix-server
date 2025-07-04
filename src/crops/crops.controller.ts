@@ -7,18 +7,21 @@ import {
   Body,
   Get,
   Delete,
+  UseInterceptors,
 } from '@nestjs/common';
 
 import { CropService } from './crop.service';
 import { Request } from 'express';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('crops')
 export class CropsController {
   constructor(private readonly cropService: CropService) {}
 
-  @UseGuards(JwtAuthGuard)
   @Post('detect-disease')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('crop-image'))
   async detectDisease(
     @UploadedFile() file: Express.Multer.File,
     @Req() req: Request,
@@ -51,7 +54,7 @@ export class CropsController {
 
   @UseGuards(JwtAuthGuard)
   @Delete('farmer-crop')
-  async deleteFarmerCrop(@Req() req: Request, @Body('cropId') cropId: number) {
+  async deleteFarmerCrop(@Req() req: Request, @Body('cropId') cropId: string) {
     const email = (req.user as any)?.email;
     return await this.cropService.deleteFarmerCrop(cropId, email);
   }

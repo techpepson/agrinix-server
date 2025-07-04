@@ -216,7 +216,7 @@ export class CropService {
     }
   }
 
-  async deleteFarmerCrop(cropId: number, email: string) {
+  async deleteFarmerCrop(cropId: string, email: string) {
     try {
       const user = await this.prisma.user.findUnique({ where: { email } });
       if (!user) {

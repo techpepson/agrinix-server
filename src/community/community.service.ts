@@ -21,7 +21,7 @@ export class CommunityService {
 
   async createMessage(
     message: MessageDto,
-    messageId: number | undefined,
+    messageId: string | undefined,
     email: string,
     file: Express.Multer.File,
   ) {
@@ -209,7 +209,7 @@ export class CommunityService {
     }
   }
 
-  async LikeMessage(messageId: number, email: string) {
+  async LikeMessage(messageId: string, email: string) {
     try {
       const user = await this.prisma.user.findUnique({ where: { email } });
 
@@ -242,7 +242,7 @@ export class CommunityService {
       );
     }
   }
-  async LikeResponse(responseId: number, email: string) {
+  async LikeResponse(responseId: string, email: string) {
     try {
       const user = await this.prisma.user.findUnique({ where: { email } });
       if (!user)
@@ -277,7 +277,7 @@ export class CommunityService {
     }
   }
 
-  async deleteMessage(messageId: number, email: string) {
+  async deleteMessage(messageId: string, email: string) {
     try {
       const user = await this.prisma.user.findUnique({ where: { email } });
       if (!user) {
@@ -315,7 +315,7 @@ export class CommunityService {
     }
   }
 
-  async deleteResponse(responseId: number, email: string) {
+  async deleteResponse(responseId: string, email: string) {
     try {
       const user = await this.prisma.user.findUnique({ where: { email } });
       if (!user) {

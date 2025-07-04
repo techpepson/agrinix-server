@@ -13,6 +13,7 @@ export default () => ({
   },
   appEnv: {
     baseUrl: process.env.SERVER_BASE_URL,
+    logoUrl: process.env.AGRINIX_LOGO_URL,
   },
   images: {
     cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
@@ -23,5 +24,13 @@ export default () => ({
     privateKey: process.env.ROBOFLOW_PRIVATE_API_KEY,
     publishableKey: process.env.ROBOFLOW_PUBLISHABLE_API_KEY,
     endpoint: process.env.ROBOFLOW_ENDPOINT,
+  },
+  google: {
+    clientId: process.env.GOOGLE_OAUTH_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET,
+  },
+  jwt: {
+    secret: process.env.JWT_SECRET,
+    secondaryKey: process.env.JWT_SECRET_OR_KEY,
   },
 });

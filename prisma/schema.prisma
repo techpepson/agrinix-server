@@ -15,7 +15,7 @@ datasource db {
 }
 
 model User {
-  id              Int            @id @unique @default(autoincrement())
+  id              String         @id @unique @default(uuid())
   name            String
   email           String         @unique
   password        String
@@ -31,16 +31,16 @@ model User {
 }
 
 model Crop {
-  id         Int     @id @unique @default(autoincrement())
+  id         String  @id @unique @default(uuid())
   user       User    @relation(fields: [userId], references: [id])
   name       String
   infections Disease @relation(fields: [diseaseId], references: [id])
-  diseaseId  Int
-  userId     Int
+  diseaseId  String
+  userId     String
 }
 
 model Disease {
-  id                          Int      @id @unique @default(autoincrement())
+  id                          String   @id @unique @default(uuid())
   crops                       Crop[]
   diseaseTop                  String
   diseaseClass                String
@@ -57,7 +57,7 @@ model Disease {
 }
 
 model Message {
-  id               Int        @id @unique @default(autoincrement())
+  id               String     @id @unique @default(uuid())
   messageTitle     String
   messageBody      String
   messageImage     String?
@@ -66,38 +66,38 @@ model Message {
   messageDislikes  Int        @default(0)
   messageResponses Response[]
   author           User       @relation(fields: [authorId], references: [id])
-  authorId         Int
+  authorId         String
   messageRead      Boolean    @default(false)
   messageCreatedAt DateTime   @default(now())
   messageUpdatedAt DateTime   @updatedAt
 }
 
 model Image {
-  id          Int      @id @unique @default(autoincrement())
+  id          String   @id @unique @default(ulid())
   imageUrl    String[]
   imageWidth  Int
   imageHeight Int
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   Disease     Disease? @relation(fields: [diseaseId], references: [id])
-  diseaseId   Int?
+  diseaseId   String?
 }
 
 model Response {
-  id                Int      @id @unique @default(autoincrement())
+  id                String   @id @unique @default(uuid())
   responseBody      String
   responseLikes     Int      @default(0)
   responseDislikes  Int      @default(0)
   responseAuthor    User     @relation(fields: [responseAuthorId], references: [id])
-  responseAuthorId  Int
+  responseAuthorId  String
   message           Message? @relation(fields: [messageId], references: [id])
-  messageId         Int?
+  messageId         String?
   responseCreatedAt DateTime @default(now())
   responseUpdatedAt DateTime @updatedAt
 }
 
 model Notification {
-  id                    Int      @id @unique @default(autoincrement())
+  id                    String   @id @unique @default(uuid())
   notificationTitle     String
   notificationBody      String
   notificationType      String
@@ -107,17 +107,17 @@ model Notification {
   notificationCreatedAt DateTime @default(now())
   notificationUpdatedAt DateTime @updatedAt
   receiver              User?    @relation(fields: [userId], references: [id])
-  userId                Int?
+  userId                String?
 }
 
 model Logs {
-  id Int @id @unique @default(autoincrement())
+  id String @id @unique @default(ulid())
 }
 
 model Likes {
-  id Int @id
+  id String @id @default(uuid())
 }
 
 model Journal {
-  id Int @id
+  id String @id @default(uuid())
 }

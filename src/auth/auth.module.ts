@@ -3,10 +3,10 @@ import { AuthController } from './auth.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
-import { jwtConstants } from './constants';
+// import { jwtConstants } from './constants';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { HelpersService } from 'src/helpers/helpers.service';
-import { ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
 
 @Module({
@@ -16,9 +16,14 @@ import { HttpModule } from '@nestjs/axios';
       maxRedirects: 5,
     }),
     PassportModule,
-    JwtModule.register({
-      secret: jwtConstants.secret,
-      signOptions: { expiresIn: '1h' },
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('jwt.secret'),
+        secretOrPrivateKey: configService.get<string>('jwt.secondaryKey'),
+        signOptions: { expiresIn: '1h' },
+      }),
     }),
   ],
   controllers: [AuthController],

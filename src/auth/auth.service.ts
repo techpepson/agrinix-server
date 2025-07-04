@@ -5,6 +5,7 @@ import {
   InternalServerErrorException,
   Logger,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { LoginDto, RegisterDto } from 'src/dto/auth.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -43,29 +44,38 @@ export class AuthService {
 
       const hashedPassword = await argon.hash(userPassword);
 
+      const emailToken = this.helpers.generateUniqueId().id;
+
       //store the user in the database
       await this.prisma.$transaction(async (tx) => {
         await tx.user.upsert({
           where: {
             email: payload.email,
           },
+          update: {
+            email: payload.email,
+
+            password: hashedPassword,
+            name: payload.name,
+          },
           create: {
             email: payload.email,
             password: hashedPassword,
             name: payload.name,
-          },
-          update: {
-            email: payload.email,
-            password: hashedPassword,
-            name: payload.name,
+            emailToken,
           },
         });
-
-        //send an email to the user if they are creating an account for the first time
-        if (!isUpdate) {
-          await this.generateEmailToken(payload.email);
-        }
       });
+
+      //send an email to the user if they are creating an account for the first time
+      if (!isUpdate) {
+        await this.generateEmailToken(
+          payload.email,
+          payload.name,
+          isUpdate,
+          emailToken,
+        );
+      }
 
       return {
         message: 'Account created successfully.Please verify email.',
@@ -90,12 +100,20 @@ export class AuthService {
         },
       });
 
+      this.logger.debug(
+        `Secret keys: ${this.configService.get<string>('jwt.secret')}`,
+      );
       //check if user exists
       if (!user) {
-        throw new ForbiddenException('Access not allowed');
+        throw new ForbiddenException('User not registered on Agrinix');
       }
 
       const userPassword = user.password;
+
+      //restrict access if email is not verified
+      if (!user.isEmailVerified) {
+        throw new ForbiddenException('Please verify email to login');
+      }
 
       //compare account passwords
       const isPasswordMatch = await argon.verify(
@@ -146,16 +164,28 @@ export class AuthService {
         throw new NotFoundException('Email token not found or removed.');
       }
 
-      //check if email token is same with id
-      if (id !== emailVerificationId || user.emailToken === null) {
+      if (
+        typeof id !== 'string' ||
+        typeof emailVerificationId !== 'string' ||
+        id.trim() !== emailVerificationId.trim()
+      ) {
         const baseUrl = this.configService.get<string>('appEnv.baseUrl');
         this.httpService.get(`${baseUrl}/generate-email-token?email=${email}`);
         return {
           message: 'Email token did not match so a new token was generated',
         };
       } else {
+        //update the verification status
+        await this.prisma.user.update({
+          where: {
+            email,
+          },
+          data: {
+            isEmailVerified: true,
+          },
+        });
         return {
-          verificationStatus: 'Success',
+          verificationStatus: 'Email verified successfully',
         };
       }
     } catch (error) {
@@ -175,7 +205,12 @@ export class AuthService {
   }
   //   async googleAuth() {}
 
-  async generateEmailToken(email: string) {
+  async generateEmailToken(
+    email: string,
+    name?: string,
+    isUpdating?: boolean,
+    token?: string,
+  ) {
     try {
       const user = await this.prisma.user.findUnique({
         where: {
@@ -183,32 +218,30 @@ export class AuthService {
         },
       });
 
-      //check if user exists
-      if (!user) {
-        throw new ForbiddenException('Access denied to this service');
-      }
-
-      //generate the id
-      const uniqueId = this.helpers.generateUniqueId().id;
+      let newToken: any;
 
       //store the user token in the database
-      await this.prisma.user.update({
-        where: {
-          email,
-        },
-        data: {
-          emailToken: uniqueId,
-        },
-      });
+      if (isUpdating) {
+        newToken = this.helpers.generateUniqueId().id;
+        await this.prisma.user.update({
+          where: {
+            email,
+          },
+          data: {
+            emailToken: newToken,
+          },
+        });
+
+        name = user?.name;
+      }
 
       const emailSubject = 'Email Verification Token';
-      const url = this.configService.get<string>(
-        `appEnv.baseUrl/verify-email?verificationId=${uniqueId}&email=${email}`,
-      );
+      const baseUrl = this.configService.get<string>('appEnv.baseUrl');
+      const url = `${baseUrl}/auth/verify-email?verificationId=${token ?? newToken}&email=${email}`;
 
       const data = {
-        userName: user.name,
-        verificationId: uniqueId,
+        userName: name,
+        verificationId: token,
         verificationUrl: url,
       };
       const templatePath = 'email.verify.ejs';
@@ -229,6 +262,10 @@ export class AuthService {
         throw new ConflictException('A conflict exception occurred.');
       } else if (error instanceof ForbiddenException) {
         throw new ForbiddenException('User access forbidden.');
+      } else if (error instanceof UnauthorizedException) {
+        throw new UnauthorizedException(
+          'Email authentication failed. Please check your email configuration.',
+        );
       } else {
         throw new InternalServerErrorException(
           'An internal server error occurred.',

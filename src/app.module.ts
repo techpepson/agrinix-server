@@ -14,9 +14,17 @@ import { PrismaService } from './prisma/prisma.service';
 import { AuthService } from './auth/auth.service';
 import { AuthController } from './auth/auth.controller';
 import { JwtService } from '@nestjs/jwt';
+import { MulterModule } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 
 @Module({
   imports: [
+    MulterModule.register({
+      storage: memoryStorage(),
+      limits: {
+        fileSize: 5 * 1024 * 1024,
+      },
+    }),
     CommunityModule,
     CropModule,
     HelpersModule,

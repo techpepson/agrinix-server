@@ -25,5 +25,5 @@ export class MessageResponseDto {
 
   @IsNumber()
   @IsNotEmpty()
-  messageId: number;
+  messageId: string;
 }

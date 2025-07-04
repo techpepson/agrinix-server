@@ -8,8 +8,8 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import ShortUniqueId from 'short-unique-id';
-import nodemailer from 'nodemailer';
-import path from 'path';
+import * as nodemailer from 'nodemailer';
+import * as path from 'path';
 import * as fs from 'fs';
 import * as ejs from 'ejs';
 import { ConfigService } from '@nestjs/config';
@@ -34,12 +34,23 @@ export class HelpersService {
     textBody?: string,
   ) {
     try {
+      const emailUser = this.configService.get<string>('email.user');
+      const emailPass = this.configService.get<string>('email.password');
+
+      this.logger.debug({ user: emailUser, password: emailPass });
+
+      // Debug logging
+      this.logger.debug('Email config:', {
+        user: emailUser ? 'Set' : 'Not set',
+        pass: emailPass ? 'Set' : 'Not set',
+      });
+
       const transporter = nodemailer.createTransport({
         service: 'gmail',
         host: 'smtp.gmail.com',
         auth: {
-          user: this.configService.get<string>('email.user'),
-          pass: this.configService.get<string>('email.password'),
+          user: emailUser,
+          pass: emailPass,
         },
       });
 
@@ -69,9 +80,9 @@ export class HelpersService {
       const filePath = path.join(process.cwd(), 'src', 'views', templatePath);
 
       //check if the path exists
-      if (!fs.existsSync(templatePath)) {
+      if (!fs.existsSync(filePath)) {
         throw new NotFoundException(
-          `Template pathe ${templatePath} does not exist`,
+          `Template path ${templatePath} does not exist`,
         );
       }
 
@@ -89,7 +100,7 @@ export class HelpersService {
     templatePath: any,
     emailReceiver: any,
   ) {
-    const html = this.renderEjs(templatePath, data);
+    const html = await this.renderEjs(templatePath, data);
 
     //send the email to the user
     await this.nodemailerSetup(emailReceiver, emailSubject, html);
