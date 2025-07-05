@@ -34,9 +34,9 @@ model User {
 
 model Crop {
   id         String  @id @unique @default(uuid())
-  user       User    @relation(fields: [userId], references: [id])
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   name       String
-  infections Disease @relation(fields: [diseaseId], references: [id])
+  infections Disease @relation(fields: [diseaseId], references: [id],onDelete: Cascade)
   diseaseId  String
   userId     String
 }
@@ -67,7 +67,7 @@ model Message {
   messageLikes     Int           @default(0)
   messageDislikes  Int           @default(0)
   messageResponses Response[]
-  author           User          @relation(fields: [authorId], references: [id])
+  author           User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
   authorId         String
   messageRead      Boolean       @default(false)
   messageCreatedAt DateTime      @default(now())
@@ -82,7 +82,7 @@ model Image {
   imageHeight Int
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  Disease     Disease? @relation(fields: [diseaseId], references: [id])
+  Disease     Disease? @relation(fields: [diseaseId], references: [id], onDelete: Cascade)
   diseaseId   String?
 }
 
@@ -91,9 +91,9 @@ model Response {
   responseBody      String
   responseLikes     Int            @default(0)
   responseDislikes  Int            @default(0)
-  responseAuthor    User           @relation(fields: [responseAuthorId], references: [id])
+  responseAuthor    User           @relation(fields: [responseAuthorId], references: [id], onDelete: Cascade)
   responseAuthorId  String
-  message           Message?       @relation(fields: [messageId], references: [id])
+  message           Message?       @relation(fields: [messageId], references: [id], onDelete: Cascade)
   messageId         String?
   responseCreatedAt DateTime       @default(now())
   responseUpdatedAt DateTime       @updatedAt
