@@ -44,6 +44,9 @@ import { CropService } from './crops/crop.service';
           password: configService.get<string>('redis.password'),
           username: configService.get<string>('redis.userName'),
         },
+        defaultJobOptions: {
+          attempts: 5,
+        },
       }),
       inject: [ConfigService],
     }),
@@ -58,7 +61,7 @@ import { CropService } from './crops/crop.service';
     HelpersModule,
     AuthModule,
     HttpModule.register({
-      timeout: 5000,
+      timeout: 10000,
       maxRedirects: 5,
     }),
     ConfigModule.forRoot({

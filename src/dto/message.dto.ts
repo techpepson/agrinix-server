@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class MessageDto {
   @IsString()
@@ -11,11 +11,11 @@ export class MessageDto {
 
   @IsString()
   @IsOptional()
-  messageImage: string;
+  messageImage?: string;
 
   @IsString()
   @IsOptional()
-  messageLink: string;
+  messageLink?: string;
 }
 
 export class MessageResponseDto {
@@ -23,7 +23,7 @@ export class MessageResponseDto {
   @IsNotEmpty()
   responseBody: string;
 
-  @IsNumber()
+  @IsString()
   @IsNotEmpty()
   messageId: string;
 }

@@ -21,8 +21,8 @@ export class CommunityController {
   constructor(private readonly communityService: CommunityService) {}
 
   @UseGuards(JwtAuthGuard)
-  @Post('message')
-  @UseInterceptors(FileInterceptor('image'))
+  @Post('create-message')
+  @UseInterceptors(FileInterceptor('message-image'))
   async createMessage(
     @Body() message: MessageDto,
     messageId: string,
@@ -32,8 +32,8 @@ export class CommunityController {
     const email = (req.user as any)?.email;
     return await this.communityService.createMessage(
       message,
-      messageId,
       email,
+      messageId,
       file,
     );
   }
@@ -63,29 +63,41 @@ export class CommunityController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post('message')
-  async likeMessage(@Query('id') messageId: string, @Req() req: Request) {
+  @Get('like-message')
+  async likeMessage(
+    @Query('messageId') messageId: string,
+    @Req() req: Request,
+  ) {
     const email = (req.user as any)?.email;
     return await this.communityService.LikeMessage(messageId, email);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post('response')
-  async likeResponse(@Query('id') responseId: string, @Req() req: Request) {
+  @Get('like-response')
+  async likeResponse(
+    @Query('responseId') responseId: string,
+    @Req() req: Request,
+  ) {
     const email = (req.user as any)?.email;
     return await this.communityService.LikeResponse(responseId, email);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Delete('message')
-  async deleteMessage(@Query('id') messageId: string, @Req() req: Request) {
+  @Delete('delete-message')
+  async deleteMessage(
+    @Query('messageId') messageId: string,
+    @Req() req: Request,
+  ) {
     const email = (req.user as any)?.email;
     return await this.communityService.deleteMessage(messageId, email);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Delete('message')
-  async deleteResponse(@Query('id') responseId: string, @Req() req: Request) {
+  @Delete('delete-response')
+  async deleteResponse(
+    @Query('responseId') responseId: string,
+    @Req() req: Request,
+  ) {
     const email = (req.user as any)?.email;
     return await this.communityService.deleteResponse(responseId, email);
   }

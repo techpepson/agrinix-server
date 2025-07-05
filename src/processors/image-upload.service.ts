@@ -119,10 +119,19 @@ export class ImageUploadProcessor extends WorkerHost {
         ? capitalizedCropNameWhenHealthy
         : capitalizedCropName || 'Unknown'; // Use capitalized crop name or default
       const diseaseTop = modelPrediction.top;
-      const predictionConfidence = modelPrediction.confidence; // Use confidence from modelPrediction
+      const predictionConfidence =
+        parseFloat(modelPrediction.confidence) || 1.0; // Convert to float
       const inferenceId = modelPrediction.inference_id; // Use inference_id from modelPrediction
-      const imageWidth = modelPrediction.image.width;
-      const imageHeight = modelPrediction.image.height;
+      const imageWidth = parseInt(modelPrediction.image.width) || 0; // Convert to integer
+      const imageHeight = parseInt(modelPrediction.image.height) || 0; // Convert to integer
+
+      // Log the extracted values for debugging
+      this.logger.log(
+        `Extracted values - Confidence: ${modelPrediction.confidence} -> ${predictionConfidence}`,
+      );
+      this.logger.log(
+        `Image dimensions - Width: ${modelPrediction.image.width} -> ${imageWidth}, Height: ${modelPrediction.image.height} -> ${imageHeight}`,
+      );
 
       // Fetch disease information from external APIs
       const diseaseInfo = await this.helpers.getDiseaseInfoFromAI(diseaseClass);
@@ -158,8 +167,7 @@ export class ImageUploadProcessor extends WorkerHost {
                     diseaseCauses: finalDiseaseInfo.causes,
                     diseasePrevention: finalDiseaseInfo.prevention,
                     diseaseSymptoms: finalDiseaseInfo.symptoms,
-                    diseasePredictionConfidence:
-                      parseFloat(predictionConfidence),
+                    diseasePredictionConfidence: predictionConfidence,
                     inferenceId,
                     accuracy: predictionConfidence,
                     diseaseImages: {
@@ -185,6 +193,7 @@ export class ImageUploadProcessor extends WorkerHost {
       return {
         message: 'Model prediction successful',
         response: prediction.response,
+        diseaseInfo: finalDiseaseInfo,
       };
     } catch (error) {
       if (error instanceof ForbiddenException) {

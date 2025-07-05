@@ -28,6 +28,8 @@ model User {
   updatedAt       DateTime       @updatedAt
   message         Message[]
   response        Response[]
+  messageLikes    MessageLike[]
+  responseLikes   ResponseLike[]
 }
 
 model Crop {
@@ -57,19 +59,20 @@ model Disease {
 }
 
 model Message {
-  id               String     @id @unique @default(uuid())
+  id               String        @id @unique @default(uuid())
   messageTitle     String
   messageBody      String
   messageImage     String?
   messageLink      String?
-  messageLikes     Int        @default(0)
-  messageDislikes  Int        @default(0)
+  messageLikes     Int           @default(0)
+  messageDislikes  Int           @default(0)
   messageResponses Response[]
-  author           User       @relation(fields: [authorId], references: [id])
+  author           User          @relation(fields: [authorId], references: [id])
   authorId         String
-  messageRead      Boolean    @default(false)
-  messageCreatedAt DateTime   @default(now())
-  messageUpdatedAt DateTime   @updatedAt
+  messageRead      Boolean       @default(false)
+  messageCreatedAt DateTime      @default(now())
+  messageUpdatedAt DateTime      @updatedAt
+  likes            MessageLike[]
 }
 
 model Image {
@@ -84,16 +87,39 @@ model Image {
 }
 
 model Response {
-  id                String   @id @unique @default(uuid())
+  id                String         @id @unique @default(uuid())
   responseBody      String
-  responseLikes     Int      @default(0)
-  responseDislikes  Int      @default(0)
-  responseAuthor    User     @relation(fields: [responseAuthorId], references: [id])
+  responseLikes     Int            @default(0)
+  responseDislikes  Int            @default(0)
+  responseAuthor    User           @relation(fields: [responseAuthorId], references: [id])
   responseAuthorId  String
-  message           Message? @relation(fields: [messageId], references: [id])
+  message           Message?       @relation(fields: [messageId], references: [id])
   messageId         String?
-  responseCreatedAt DateTime @default(now())
-  responseUpdatedAt DateTime @updatedAt
+  responseCreatedAt DateTime       @default(now())
+  responseUpdatedAt DateTime       @updatedAt
+  likes             ResponseLike[]
+}
+
+model MessageLike {
+  id        String   @id @unique @default(uuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, messageId])
+}
+
+model ResponseLike {
+  id         String   @id @unique @default(uuid())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  response   Response @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  responseId String
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, responseId])
 }
 
 model Notification {
@@ -112,10 +138,6 @@ model Notification {
 
 model Logs {
   id String @id @unique @default(ulid())
-}
-
-model Likes {
-  id String @id @default(uuid())
 }
 
 model Journal {

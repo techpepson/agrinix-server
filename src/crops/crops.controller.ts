@@ -62,9 +62,17 @@ export class CropsController {
 
   @UseGuards(JwtAuthGuard)
   @Delete('farmer-crop')
-  async deleteFarmerCrop(@Req() req: Request, @Body('cropId') cropId: string) {
+  async deleteFarmerCrop(@Req() req: Request, @Query('cropId') cropId: string) {
     const email = (req.user as any)?.email;
     return await this.cropService.deleteFarmerCrop(cropId, email);
+  }
+
+  // Debug endpoint to check crop details
+  @UseGuards(JwtAuthGuard)
+  @Get('debug/crop')
+  async debugCrop(@Req() req: Request, @Query('cropId') cropId: string) {
+    const email = (req.user as any)?.email;
+    return await this.cropService.debugCrop(cropId, email);
   }
 
   /**

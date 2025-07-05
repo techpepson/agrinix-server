@@ -147,13 +147,14 @@ export class CropService {
       }
 
       //fetch the crops associated wit a farmer
-      const crops = await this.prisma.user.findUnique({
+      const crops = await this.prisma.user.findMany({
         where: {
           email,
         },
         select: {
           crops: {
             select: {
+              id: true,
               name: true,
               infections: true,
             },
@@ -165,29 +166,52 @@ export class CropService {
         data: crops,
       };
     } catch (error) {
-      console.error(error);
+      if (error instanceof ForbiddenException) {
+        throw new ForbiddenException('Access forbidden for this service');
+      }
+      throw new Error();
     }
   }
 
   async deleteFarmerCrop(cropId: string, email: string) {
     try {
+      this.logger.log(
+        `Attempting to delete crop with ID: ${cropId} for user: ${email}`,
+      );
+
       const user = await this.prisma.user.findUnique({ where: { email } });
       if (!user) {
+        this.logger.warn(`User not found for email: ${email}`);
         throw new ForbiddenException('Access forbidden for this request');
       }
 
+      this.logger.log(`User found with ID: ${user.id}`);
+
       // Find the crop and ensure the user is the owner
       const crop = await this.prisma.crop.findUnique({ where: { id: cropId } });
+      this.logger.log(`Crop lookup result:`, crop);
+
       if (!crop) {
+        this.logger.warn(`Crop not found with ID: ${cropId}`);
         throw new BadRequestException('Crop not found');
       }
+
+      this.logger.log(
+        `Crop found - User ID: ${crop.userId}, Requesting User ID: ${user.id}`,
+      );
+
       if (crop.userId !== user.id) {
+        this.logger.warn(
+          `User ${user.id} not authorized to delete crop ${cropId} owned by ${crop.userId}`,
+        );
         throw new ForbiddenException('You are not allowed to delete this crop');
       }
 
       await this.prisma.crop.delete({ where: { id: cropId } });
+      this.logger.log(`Crop ${cropId} deleted successfully`);
       return { message: 'Crop deleted successfully' };
     } catch (error) {
+      this.logger.error(`Error in deleteFarmerCrop:`, error);
       if (
         error instanceof ForbiddenException ||
         error instanceof BadRequestException
@@ -234,6 +258,73 @@ export class CropService {
       return {
         success: false,
         error: error.message,
+      };
+    }
+  }
+
+  // Debug method to check crop details
+  async debugCrop(cropId: string, email: string) {
+    try {
+      this.logger.log(
+        `Debug: Checking crop with ID: ${cropId} for user: ${email}`,
+      );
+
+      const user = await this.prisma.user.findUnique({ where: { email } });
+      if (!user) {
+        return {
+          success: false,
+          error: 'User not found',
+          userEmail: email,
+        };
+      }
+
+      // Check if crop exists
+      const crop = await this.prisma.crop.findUnique({
+        where: { id: cropId },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+            },
+          },
+          infections: {
+            select: {
+              id: true,
+              diseaseClass: true,
+              diseaseDescription: true,
+            },
+          },
+        },
+      });
+
+      if (!crop) {
+        return {
+          success: false,
+          error: 'Crop not found',
+          cropId,
+          userEmail: email,
+          userId: user.id,
+        };
+      }
+
+      return {
+        success: true,
+        crop,
+        requestingUser: {
+          id: user.id,
+          email: user.email,
+        },
+        ownershipMatch: crop.userId === user.id,
+      };
+    } catch (error) {
+      this.logger.error('Debug crop error:', error);
+      return {
+        success: false,
+        error: error.message,
+        cropId,
+        userEmail: email,
       };
     }
   }

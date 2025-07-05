@@ -16,7 +16,7 @@ import { ProcessorModule } from 'src/processors/processor.module';
     HttpModule,
     BullModule.registerQueue({
       name: 'process-image',
-      defaultJobOptions: { attempts: 3 },
+      defaultJobOptions: { attempts: 5 },
       prefix: 'agrinix',
     }),
   ],

@@ -21,9 +21,9 @@ export class CommunityService {
 
   async createMessage(
     message: MessageDto,
-    messageId: string | undefined,
     email: string,
-    file: Express.Multer.File,
+    messageId?: string,
+    file?: Express.Multer.File,
   ) {
     try {
       const user = await this.prisma.user.findUnique({
@@ -75,11 +75,13 @@ export class CommunityService {
         message: 'Message sent successfully',
       };
     } catch (error) {
+      this.logger.error('Error in createMessage:', error);
       if (error instanceof ForbiddenException) {
         throw new ForbiddenException('Access forbidden for this service.');
       } else if (error instanceof BadRequestException) {
-        throw new BadRequestException('Invalid request sent');
+        throw error;
       } else if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        this.logger.error('Prisma error details:', error);
         throw new BadRequestException(
           'A prisma error occurred. Please try again later',
         );
@@ -107,12 +109,57 @@ export class CommunityService {
         orderBy: {
           messageCreatedAt: 'desc',
         },
+        include: {
+          messageResponses: {
+            include: {
+              responseAuthor: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
       });
 
-      return messages;
+      // Get like status for each message for the current user
+      const messagesWithLikeStatus = await Promise.all(
+        messages.map(async (message) => {
+          const userLike = await this.prisma.messageLike.findUnique({
+            where: {
+              userId_messageId: {
+                userId: user.id,
+                messageId: message.id,
+              },
+            },
+          });
+
+          return {
+            ...message,
+            hasUserLiked: !!userLike,
+          };
+        }),
+      );
+
+      return messagesWithLikeStatus;
     } catch (error) {
+      this.logger.error('Error in fetchMessages:', error);
       if (error instanceof ForbiddenException) {
-        throw new ForbiddenException('Access forbidden for this service.');
+        throw error;
+      } else if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        this.logger.error('Prisma error details:', error);
+        throw new BadRequestException(
+          'A prisma error occurred. Please try again later',
+        );
       } else {
         throw new InternalServerErrorException(
           'An internal server error occurred',
@@ -157,11 +204,13 @@ export class CommunityService {
         message: 'Response sent successfully',
       };
     } catch (error) {
+      this.logger.error('Error in createResponse:', error);
       if (error instanceof ForbiddenException) {
         throw new ForbiddenException('Access forbidden for this service.');
       } else if (error instanceof BadRequestException) {
-        throw new BadRequestException('Invalid request sent');
+        throw error;
       } else if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        this.logger.error('Prisma error details:', error);
         throw new BadRequestException(
           'A prisma error occurred. Please try again later',
         );
@@ -191,13 +240,21 @@ export class CommunityService {
             id: user.id,
           },
         },
+        include: {
+          messageResponses: true,
+          author: true,
+        },
       });
 
       return messages;
     } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw new BadRequestException('Invalid request sent');
+      this.logger.error('Error in fetchUserMessages:', error);
+      if (error instanceof ForbiddenException) {
+        throw error;
+      } else if (error instanceof BadRequestException) {
+        throw error;
       } else if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        this.logger.error('Prisma error details:', error);
         throw new BadRequestException(
           'A prisma error occurred. Please try again later',
         );
@@ -216,27 +273,76 @@ export class CommunityService {
       if (!user)
         throw new ForbiddenException('Access forbidden for this service.');
 
-      const response = await this.prisma.response.findUnique({
+      const message = await this.prisma.message.findUnique({
         where: { id: messageId },
       });
-      if (!response) throw new NotFoundException('Response not found');
+      if (!message) throw new NotFoundException('Message not found');
 
-      await this.prisma.message.update({
+      // Check if user has already liked this message
+      const existingLike = await this.prisma.messageLike.findUnique({
         where: {
-          id: messageId,
-        },
-        data: {
-          messageLikes: {
-            increment: 1,
+          userId_messageId: {
+            userId: user.id,
+            messageId: messageId,
           },
         },
       });
 
-      return { message: 'Response liked successfully' };
+      if (existingLike) {
+        // User has already liked this message, remove the like (unlike)
+        await this.prisma.$transaction(async (tx) => {
+          await tx.messageLike.delete({
+            where: {
+              userId_messageId: {
+                userId: user.id,
+                messageId: messageId,
+              },
+            },
+          });
+
+          await tx.message.update({
+            where: { id: messageId },
+            data: {
+              messageLikes: {
+                decrement: 1,
+              },
+            },
+          });
+        });
+
+        return { message: 'Message unliked successfully' };
+      } else {
+        // User hasn't liked this message yet, add the like
+        await this.prisma.$transaction(async (tx) => {
+          await tx.messageLike.create({
+            data: {
+              userId: user.id,
+              messageId: messageId,
+            },
+          });
+
+          await tx.message.update({
+            where: { id: messageId },
+            data: {
+              messageLikes: {
+                increment: 1,
+              },
+            },
+          });
+        });
+
+        return { message: 'Message liked successfully' };
+      }
     } catch (error) {
-      if (error instanceof BadRequestException) throw error;
-      else if (error instanceof NotFoundException)
-        throw new NotFoundException('Message not found');
+      this.logger.error('Error in LikeMessage:', error);
+      if (
+        error instanceof ForbiddenException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      } else if (error instanceof BadRequestException) {
+        throw error;
+      }
       throw new InternalServerErrorException(
         'An internal server error occurred',
       );
@@ -253,19 +359,63 @@ export class CommunityService {
       });
       if (!response) throw new BadRequestException('Response not found');
 
-      await this.prisma.response.update({
+      // Check if user has already liked this response
+      const existingLike = await this.prisma.responseLike.findUnique({
         where: {
-          id: responseId,
-        },
-        data: {
-          responseLikes: {
-            increment: 1,
+          userId_responseId: {
+            userId: user.id,
+            responseId: responseId,
           },
         },
       });
 
-      return { message: 'Response liked successfully' };
+      if (existingLike) {
+        // User has already liked this response, remove the like (unlike)
+        await this.prisma.$transaction(async (tx) => {
+          await tx.responseLike.delete({
+            where: {
+              userId_responseId: {
+                userId: user.id,
+                responseId: responseId,
+              },
+            },
+          });
+
+          await tx.response.update({
+            where: { id: responseId },
+            data: {
+              responseLikes: {
+                decrement: 1,
+              },
+            },
+          });
+        });
+
+        return { message: 'Response unliked successfully' };
+      } else {
+        // User hasn't liked this response yet, add the like
+        await this.prisma.$transaction(async (tx) => {
+          await tx.responseLike.create({
+            data: {
+              userId: user.id,
+              responseId: responseId,
+            },
+          });
+
+          await tx.response.update({
+            where: { id: responseId },
+            data: {
+              responseLikes: {
+                increment: 1,
+              },
+            },
+          });
+        });
+
+        return { message: 'Response liked successfully' };
+      }
     } catch (error) {
+      this.logger.error('Error in LikeResponse:', error);
       if (
         error instanceof ForbiddenException ||
         error instanceof BadRequestException
@@ -303,6 +453,7 @@ export class CommunityService {
 
       return { message: 'Message deleted successfully' };
     } catch (error) {
+      this.logger.error('Error in deleteMessage:', error);
       if (
         error instanceof ForbiddenException ||
         error instanceof BadRequestException
@@ -341,9 +492,126 @@ export class CommunityService {
 
       return { message: 'Response deleted successfully' };
     } catch (error) {
+      this.logger.error('Error in deleteResponse:', error);
       if (
         error instanceof ForbiddenException ||
         error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'An internal server error occurred',
+      );
+    }
+  }
+
+  // Helper method to check if user has liked a message
+  async hasUserLikedMessage(messageId: string, email: string) {
+    try {
+      const user = await this.prisma.user.findUnique({ where: { email } });
+      if (!user) {
+        throw new ForbiddenException('Access forbidden for this service.');
+      }
+
+      const like = await this.prisma.messageLike.findUnique({
+        where: {
+          userId_messageId: {
+            userId: user.id,
+            messageId: messageId,
+          },
+        },
+      });
+
+      return { hasLiked: !!like };
+    } catch (error) {
+      this.logger.error('Error in hasUserLikedMessage:', error);
+      throw new InternalServerErrorException(
+        'An internal server error occurred',
+      );
+    }
+  }
+
+  // Helper method to check if user has liked a response
+  async hasUserLikedResponse(responseId: string, email: string) {
+    try {
+      const user = await this.prisma.user.findUnique({ where: { email } });
+      if (!user) {
+        throw new ForbiddenException('Access forbidden for this service.');
+      }
+
+      const like = await this.prisma.responseLike.findUnique({
+        where: {
+          userId_responseId: {
+            userId: user.id,
+            responseId: responseId,
+          },
+        },
+      });
+
+      return { hasLiked: !!like };
+    } catch (error) {
+      this.logger.error('Error in hasUserLikedResponse:', error);
+      throw new InternalServerErrorException(
+        'An internal server error occurred',
+      );
+    }
+  }
+
+  // Helper method to get message with like status for a user
+  async getMessageWithLikeStatus(messageId: string, email: string) {
+    try {
+      const user = await this.prisma.user.findUnique({ where: { email } });
+      if (!user) {
+        throw new ForbiddenException('Access forbidden for this service.');
+      }
+
+      const message = await this.prisma.message.findUnique({
+        where: { id: messageId },
+        include: {
+          messageResponses: {
+            include: {
+              responseAuthor: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      if (!message) {
+        throw new NotFoundException('Message not found');
+      }
+
+      // Check if user has liked this message
+      const userLike = await this.prisma.messageLike.findUnique({
+        where: {
+          userId_messageId: {
+            userId: user.id,
+            messageId: messageId,
+          },
+        },
+      });
+
+      return {
+        ...message,
+        hasUserLiked: !!userLike,
+      };
+    } catch (error) {
+      this.logger.error('Error in getMessageWithLikeStatus:', error);
+      if (
+        error instanceof ForbiddenException ||
+        error instanceof NotFoundException
       ) {
         throw error;
       }
