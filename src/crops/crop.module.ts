@@ -7,8 +7,19 @@ import { ConfigService } from '@nestjs/config';
 import { HelpersService } from 'src/helpers/helpers.service';
 import { CropsController } from './crops.controller';
 
+import { BullModule } from '@nestjs/bullmq';
+import { ProcessorModule } from 'src/processors/processor.module';
+
 @Module({
-  imports: [HttpModule],
+  imports: [
+    ProcessorModule,
+    HttpModule,
+    BullModule.registerQueue({
+      name: 'process-image',
+      defaultJobOptions: { attempts: 3 },
+      prefix: 'agrinix',
+    }),
+  ],
   controllers: [CropsController],
   providers: [CropService, PrismaService, ConfigService, HelpersService],
 })

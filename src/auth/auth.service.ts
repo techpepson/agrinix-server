@@ -14,10 +14,13 @@ import { JwtService } from '@nestjs/jwt';
 import { HelpersService } from 'src/helpers/helpers.service';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class AuthService {
   constructor(
+    @InjectQueue('email') private readonly emailQueue: Queue,
     private prisma: PrismaService,
     private jwt: JwtService,
     private helpers: HelpersService,
@@ -69,12 +72,12 @@ export class AuthService {
 
       //send an email to the user if they are creating an account for the first time
       if (!isUpdate) {
-        await this.generateEmailToken(
-          payload.email,
-          payload.name,
-          isUpdate,
-          emailToken,
-        );
+        await this.emailQueue.add('sendEmail', {
+          email: payload.email,
+          name: payload.name,
+          isUpdating: isUpdate,
+          token: emailToken,
+        });
       }
 
       return {
@@ -126,7 +129,10 @@ export class AuthService {
       }
 
       //sign user token
-      const token = this.jwt.sign({ email: user.email, id: user.id });
+      const token = await this.jwt.signAsync(
+        { email: user.email, id: user.id },
+        { secret: this.configService.get<string>('jwt.secret') },
+      );
 
       return {
         message: 'Login Successful',
@@ -189,7 +195,6 @@ export class AuthService {
         };
       }
     } catch (error) {
-      console.error(error);
       if (error instanceof NotFoundException) {
         throw new NotFoundException('User account not found.');
       } else if (error instanceof ConflictException) {
@@ -255,7 +260,6 @@ export class AuthService {
         emailReceiver,
       );
     } catch (error) {
-      console.error(error);
       if (error instanceof NotFoundException) {
         throw new NotFoundException('User account not found.');
       } else if (error instanceof ConflictException) {

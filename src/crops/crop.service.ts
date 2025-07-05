@@ -9,128 +9,81 @@ import { ConfigService } from '@nestjs/config';
 import { HelpersService } from 'src/helpers/helpers.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
-
+import { Queue } from 'bullmq';
+import { InjectQueue } from '@nestjs/bullmq';
 @Injectable()
 export class CropService {
   constructor(
     private prisma: PrismaService,
     private helper: HelpersService,
     private configService: ConfigService,
+    @InjectQueue('process-image') private readonly imageQueue: Queue,
     private httpService: HttpService,
   ) {}
 
   logger = new Logger(CropService.name);
+
   async detectCropDisease(file: Express.Multer.File, email: string) {
-    try {
-      const user = await this.prisma.user.findUnique({
-        where: {
-          email,
-        },
-      });
+    const job = await this.imageQueue.add('process-image', {
+      email,
+      file,
+    });
 
-      //check if the user exists
-      if (!user) {
-        throw new ForbiddenException('Access forbidden for this request');
-      }
+    // Return job ID for client to check status
+    return {
+      message: 'Image uploaded successfully. Processing in background...',
+      jobId: job.id,
+      status: 'processing',
+    };
+  }
 
-      // Input validation: check file presence
-      if (!file) {
-        throw new BadRequestException('No file uploaded');
-      }
-      // Input validation: check file type (accept only images)
-      if (!file.mimetype.startsWith('image/')) {
-        throw new BadRequestException('Uploaded file must be an image');
-      }
-      // Input validation: check file size (e.g., max 5MB)
-      const MAX_SIZE = 5 * 1024 * 1024;
-      if (file.size > MAX_SIZE) {
-        throw new BadRequestException('Image size must be less than 5MB');
-      }
+  async getJobStatus(jobId: string) {
+    const job = await this.imageQueue.getJob(jobId);
 
-      //upload image to cloudinary
-      const image = await this.helper.uploadImage(file);
-
-      //invoke the roboflow api method
-      const prediction = await this.fetchRoboflowPrediction(image.secureUrl);
-
-      // Validate Roboflow response structure
-      const outputs = prediction?.response?.response?.outputs;
-      if (!outputs || !Array.isArray(outputs) || outputs.length === 0) {
-        return {
-          message:
-            'Oops! Our model could not predict this. Please try again with a clearer image',
-        };
-      }
-      const modelPrediction = outputs[0]?.model_prediction_output;
-      if (
-        !modelPrediction ||
-        !modelPrediction.predictions ||
-        !Array.isArray(modelPrediction.predictions) ||
-        modelPrediction.predictions.length === 0
-      ) {
-        return {
-          message:
-            'No disease prediction found. Please try again with a clearer image',
-        };
-      }
-
-      const filteredCropName = '';
-      const diseaseClass = modelPrediction.predictions[0].class;
-      const diseaseTop = modelPrediction.top;
-      const predictionConfidence = modelPrediction.top;
-      const inferenceId = modelPrediction.top;
-      const imageWidth = modelPrediction.image.width;
-      const imageHeight = modelPrediction.image.height;
-
-      //save the prediction to the database against the farmer name
-      await this.prisma.user.update({
-        where: { email },
-        data: {
-          crops: {
-            create: {
-              name: filteredCropName,
-              infections: {
-                create: {
-                  diseaseClass,
-                  diseaseTop,
-                  diseaseDescription: '',
-                  diseaseCauses: [],
-                  diseasePrevention: [],
-                  diseaseSymptoms: [],
-                  diseasePredictionConfidence: predictionConfidence,
-                  inferenceId,
-                  accuracy: predictionConfidence,
-                  diseaseImages: {
-                    create: {
-                      imageUrl: Array.from(image.secureUrl),
-                      imageWidth,
-                      imageHeight,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      });
-
-      return {
-        message: 'Model prediction successful',
-        response: prediction.response,
-      };
-    } catch (error) {
-      if (error instanceof ForbiddenException) {
-        throw new ForbiddenException(
-          'User forbidden from performing this request',
-        );
-      } else if (error instanceof BadRequestException) {
-        throw error;
-      } else {
-        throw new InternalServerErrorException(
-          'An internal server error occurred while fetching predictions.',
-        );
-      }
+    if (!job) {
+      throw new BadRequestException('Job not found');
     }
+
+    const state = await job.getState();
+    const result = await job.returnvalue;
+
+    return {
+      jobId,
+      status: state,
+      result: result || null,
+    };
+  }
+
+  async getUserJobs(email: string) {
+    // Get all jobs from the queue
+    const jobs = await this.imageQueue.getJobs([
+      'active',
+      'waiting',
+      'completed',
+      'failed',
+    ]);
+
+    // Filter jobs for this user
+    const userJobs = jobs.filter((job) => job.data.email === email);
+
+    // Get detailed info for each job
+    const jobDetails = await Promise.all(
+      userJobs.map(async (job) => {
+        const state = await job.getState();
+        const result = await job.returnvalue;
+
+        return {
+          jobId: job.id,
+          status: state,
+          result: result || null,
+          createdAt: job.timestamp,
+          processedAt: job.processedOn,
+          finishedAt: job.finishedOn,
+        };
+      }),
+    );
+
+    return jobDetails;
   }
 
   //method to make a call to roboflow
@@ -244,6 +197,44 @@ export class CropService {
       throw new InternalServerErrorException(
         'An internal server error occurred',
       );
+    }
+  }
+
+  // AI-powered disease information methods
+  async getDiseaseInfoFromAI(diseaseClass: string) {
+    try {
+      const diseaseInfo = await this.helper.getDiseaseInfoFromAI(diseaseClass);
+      return {
+        success: true,
+        diseaseInfo,
+      };
+    } catch (error) {
+      this.logger.error('AI disease info failed:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  async askAIAboutDisease(question: string, diseaseClass?: string) {
+    try {
+      const prompt = diseaseClass
+        ? `Question: ${question}\n\nContext: This is about ${diseaseClass.replace(/_/g, ' ')} disease.`
+        : question;
+
+      const result = await this.helper.makeOpenRouterCall(prompt);
+      return {
+        success: true,
+        response: result.response,
+        usage: result.usage,
+      };
+    } catch (error) {
+      this.logger.error('AI question failed:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
     }
   }
 }

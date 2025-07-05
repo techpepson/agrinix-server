@@ -1,3 +1,8 @@
+import { ProcessorModule } from './processors/processor.module';
+import { GuardModule } from './guards/guard.module';
+import { ImageUploadProcessor } from './processors/image-upload.service';
+import { EmailProcessor } from './processors/email-processor.service';
+
 import { CommunityModule } from './community/community.module';
 import { CropModule } from './crops/crop.module';
 import { HelpersModule } from './helpers/helpers.module';
@@ -16,9 +21,13 @@ import { AuthController } from './auth/auth.controller';
 import { JwtService } from '@nestjs/jwt';
 import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
+import { BullModule } from '@nestjs/bullmq';
+import { CropService } from './crops/crop.service';
 
 @Module({
   imports: [
+    ProcessorModule,
+    GuardModule,
     MulterModule.register({
       storage: memoryStorage(),
       limits: {
@@ -26,6 +35,25 @@ import { memoryStorage } from 'multer';
       },
     }),
     CommunityModule,
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          host: configService.get<string>('redis.host'),
+          port: configService.get<number>('redis.port'),
+          password: configService.get<string>('redis.password'),
+          username: configService.get<string>('redis.userName'),
+        },
+      }),
+      inject: [ConfigService],
+    }),
+
+    BullModule.registerQueue({
+      name: 'email',
+    }),
+    BullModule.registerQueue({
+      name: 'process-image',
+    }),
     CropModule,
     HelpersModule,
     AuthModule,
@@ -41,6 +69,9 @@ import { memoryStorage } from 'multer';
   ],
   controllers: [AppController, AuthController],
   providers: [
+    CropService,
+    ImageUploadProcessor,
+    EmailProcessor,
     CronService,
     HelpersService,
     AppService,
