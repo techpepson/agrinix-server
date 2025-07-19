@@ -22,7 +22,7 @@ export class CommunityController {
 
   @UseGuards(JwtAuthGuard)
   @Post('create-message')
-  @UseInterceptors(FileInterceptor('message-image'))
+  @UseInterceptors(FileInterceptor('messageImage'))
   async createMessage(
     @Body() message: MessageDto,
     messageId: string,
@@ -46,7 +46,7 @@ export class CommunityController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post('message/response')
+  @Post('create-response')
   async createResponse(
     @Body() response: MessageResponseDto,
     @Req() req: Request,

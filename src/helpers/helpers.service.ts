@@ -92,6 +92,7 @@ export class HelpersService {
       }
 
       const renderedFile = await ejs.renderFile(filePath, data);
+
       return renderedFile;
     } catch (error) {
       this.logger?.error?.('Failed to render EJS template:', error);

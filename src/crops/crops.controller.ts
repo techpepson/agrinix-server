@@ -26,7 +26,7 @@ export class CropsController {
    */
   @UseGuards(JwtAuthGuard)
   @Post('detect-disease')
-  @UseInterceptors(FileInterceptor('crop-image'))
+  @UseInterceptors(FileInterceptor('cropImage'))
   async detectDisease(
     @UploadedFile() file: Express.Multer.File,
     @Req() req: Request,
@@ -36,8 +36,11 @@ export class CropsController {
     const result = await this.cropService.detectCropDisease(file, email);
     return {
       message: result.message,
-      jobId: result.jobId,
-      status: result.status,
+      response: result.response,
+      class: result.class,
+      cropName: result.cropName,
+      diseaseInfo: result.diseaseInfo,
+      imageUrl: result.imageUrl,
     };
   }
 
@@ -79,45 +82,45 @@ export class CropsController {
    * Get the status and result of a specific job
    * @param jobId - The job ID returned from detect-disease endpoint
    */
-  @UseGuards(JwtAuthGuard)
-  @Get('job-status')
-  async getJobStatus(@Req() req: Request, @Query('jobId') jobId: string) {
-    try {
-      const result = await this.cropService.getJobStatus(jobId);
-      return {
-        success: true,
-        ...result,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.message,
-        jobId,
-      };
-    }
-  }
+  // @UseGuards(JwtAuthGuard)
+  // @Get('job-status')
+  // async getJobStatus(@Req() req: Request, @Query('jobId') jobId: string) {
+  //   try {
+  //     const result = await this.cropService.getJobStatus(jobId);
+  //     return {
+  //       success: true,
+  //       ...result,
+  //     };
+  //   } catch (error) {
+  //     return {
+  //       success: false,
+  //       error: error.message,
+  //       jobId,
+  //     };
+  //   }
+  // }
 
   /**
    * Get all jobs for the authenticated user
    * Returns a list of all disease detection jobs with their status
    */
-  @UseGuards(JwtAuthGuard)
-  @Get('my-jobs')
-  async getUserJobs(@Req() req: Request) {
-    const email = (req.user as any)?.email;
-    try {
-      const jobs = await this.cropService.getUserJobs(email);
-      return {
-        success: true,
-        jobs,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
+  // @UseGuards(JwtAuthGuard)
+  // @Get('my-jobs')
+  // async getUserJobs(@Req() req: Request) {
+  //   const email = (req.user as any)?.email;
+  //   try {
+  //     const jobs = await this.cropService.getUserJobs(email);
+  //     return {
+  //       success: true,
+  //       jobs,
+  //     };
+  //   } catch (error) {
+  //     return {
+  //       success: false,
+  //       error: error.message,
+  //     };
+  //   }
+  // }
 
   /**
    * Get AI-powered disease information

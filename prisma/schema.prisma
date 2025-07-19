@@ -15,28 +15,29 @@ datasource db {
 }
 
 model User {
-  id              String         @id @unique @default(uuid())
-  name            String
-  email           String         @unique
-  password        String
-  profilePicture  String?
-  isEmailVerified Boolean?       @default(false)
-  emailToken      String?
-  crops           Crop[]
-  notifications   Notification[]
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  message         Message[]
-  response        Response[]
-  messageLikes    MessageLike[]
-  responseLikes   ResponseLike[]
+  id                String         @id @unique @default(uuid())
+  name              String
+  email             String         @unique
+  password          String
+  profilePicture    String?
+  isEmailVerified   Boolean?       @default(false)
+  emailToken        String?
+  crops             Crop[]
+  notifications     Notification[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  message           Message[]
+  response          Response[]
+  messageLikes      MessageLike[]
+  responseLikes     ResponseLike[]
+  hasLoggedInBefore Boolean?       @default(false)
 }
 
 model Crop {
   id         String  @id @unique @default(uuid())
   user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   name       String
-  infections Disease @relation(fields: [diseaseId], references: [id],onDelete: Cascade)
+  infections Disease @relation(fields: [diseaseId], references: [id], onDelete: Cascade)
   diseaseId  String
   userId     String
 }
@@ -51,11 +52,11 @@ model Disease {
   diseaseImages               Image[]
   diseaseDescription          String
   inferenceId                 String
-  diseasePredictionConfidence Int
+  diseasePredictionConfidence Float
   diseaseSymptoms             String[]
   diseasePrevention           String[]
   diseaseCauses               String[]
-  accuracy                    Int
+  accuracy                    Float
 }
 
 model Message {
@@ -64,6 +65,7 @@ model Message {
   messageBody      String
   messageImage     String?
   messageLink      String?
+  delivered        Boolean?      @default(false)
   messageLikes     Int           @default(0)
   messageDislikes  Int           @default(0)
   messageResponses Response[]

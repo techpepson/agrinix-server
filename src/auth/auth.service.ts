@@ -5,6 +5,8 @@ import {
   InternalServerErrorException,
   Logger,
   NotFoundException,
+  PreconditionFailedException,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { LoginDto, RegisterDto } from 'src/dto/auth.dto';
@@ -72,12 +74,15 @@ export class AuthService {
 
       //send an email to the user if they are creating an account for the first time
       if (!isUpdate) {
-        await this.emailQueue.add('sendEmail', {
+        const emailJob = await this.emailQueue.add('sendEmail', {
           email: payload.email,
           name: payload.name,
           isUpdating: isUpdate,
           token: emailToken,
         });
+
+        const jobId = emailJob.id;
+        console.log(jobId);
       }
 
       return {
@@ -86,10 +91,10 @@ export class AuthService {
     } catch (error) {
       this.logger.error(error);
       if (error instanceof ConflictException) {
-        throw new ConflictException('User already exists');
+        throw error;
       } else {
-        throw new InternalServerErrorException(
-          'An error occurred while creating account',
+        throw new ServiceUnavailableException(
+          'Oops! Our Servers are currently unavailable.',
         );
       }
     }
@@ -98,37 +103,35 @@ export class AuthService {
   async emailLogin(payload: LoginDto) {
     try {
       const user = await this.prisma.user.findUnique({
-        where: {
-          email: payload.email,
-        },
+        where: { email: payload.email },
       });
 
-      this.logger.debug(
-        `Secret keys: ${this.configService.get<string>('jwt.secret')}`,
-      );
-      //check if user exists
       if (!user) {
-        throw new ForbiddenException('User not registered on Agrinix');
+        throw new UnauthorizedException('User not registered on Agrinix');
       }
 
-      const userPassword = user.password;
+      // if (!user.isEmailVerified) {
+      //   throw new PreconditionFailedException('Please verify email to login');
+      // }
 
-      //restrict access if email is not verified
-      if (!user.isEmailVerified) {
-        throw new ForbiddenException('Please verify email to login');
-      }
-
-      //compare account passwords
       const isPasswordMatch = await argon.verify(
-        userPassword,
+        user.password,
         payload.password,
       );
 
       if (!isPasswordMatch) {
-        throw new ForbiddenException('Passwords do not match');
+        throw new UnauthorizedException('Passwords do not match');
       }
 
-      //sign user token
+      // First time login logic
+      const hasLoggedInBefore = user.hasLoggedInBefore;
+      if (hasLoggedInBefore == false) {
+        await this.prisma.user.update({
+          where: { email: payload.email },
+          data: { hasLoggedInBefore: true },
+        });
+      }
+
       const token = await this.jwt.signAsync(
         { email: user.email, id: user.id },
         { secret: this.configService.get<string>('jwt.secret') },
@@ -137,16 +140,23 @@ export class AuthService {
       return {
         message: 'Login Successful',
         token,
+        hasLoggedInBefore,
+        userId: user.id,
       };
     } catch (error) {
-      this.logger.error(error);
-      if (error instanceof ForbiddenException) {
-        throw new ForbiddenException('Invalid credentials');
-      } else {
-        throw new InternalServerErrorException(
-          'An internal server error occurred',
-        );
+      // If it's a known HTTP exception, rethrow it so NestJS can handle it
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof PreconditionFailedException
+      ) {
+        throw error;
       }
+      // Log unexpected errors
+      this.logger.error(error);
+      // For all other errors, return a generic server error
+      throw new ServiceUnavailableException(
+        'Oops! Our servers are currently unavailable.',
+      );
     }
   }
 

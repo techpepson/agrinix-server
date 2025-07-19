@@ -31,7 +31,7 @@ import { CropService } from './crops/crop.service';
     MulterModule.register({
       storage: memoryStorage(),
       limits: {
-        fileSize: 5 * 1024 * 1024,
+        fileSize: 10 * 1024 * 1024,
       },
     }),
     CommunityModule,
@@ -39,6 +39,7 @@ import { CropService } from './crops/crop.service';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         connection: {
+          sentinelMaxConnections: 10000,
           host: configService.get<string>('redis.host'),
           port: configService.get<number>('redis.port'),
           password: configService.get<string>('redis.password'),

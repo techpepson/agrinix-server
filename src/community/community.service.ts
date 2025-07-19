@@ -36,20 +36,21 @@ export class CommunityService {
         throw new ForbiddenException('Access forbidden for this service.');
       }
 
-      await this.prisma.$transaction(async (tx) => {
-        if (file) {
-          if (file.buffer.length == 0) {
-            throw new BadRequestException('Buffer length is empty');
-          }
-          const MAX_SIZE = 5 * 1024 * 1024;
-          if (file.size > MAX_SIZE) {
-            throw new BadRequestException('Image size greater than 5MB');
-          }
-
-          const image = await this.helpers.uploadImage(file);
-          messageImage = image.secureUrl;
+      //upload the media sent with the message
+      if (file) {
+        if (file.buffer.length == 0) {
+          throw new BadRequestException('Buffer length is empty');
+        }
+        const MAX_SIZE = 10 * 1024 * 1024;
+        if (file.size > MAX_SIZE) {
+          throw new BadRequestException('Image size greater than 5MB');
         }
 
+        const image = await this.helpers.uploadImage(file);
+        messageImage = image.secureUrl;
+      }
+
+      await this.prisma.$transaction(async (tx) => {
         if (messageId) {
           await tx.message.update({
             where: { id: messageId },
@@ -64,6 +65,7 @@ export class CommunityService {
             data: {
               messageTitle: message.messageTitle,
               messageBody: message.messageBody,
+              delivered: true,
               messageImage: messageImage ?? null,
               author: { connect: { id: user.id } },
             },
@@ -112,22 +114,10 @@ export class CommunityService {
         include: {
           messageResponses: {
             include: {
-              responseAuthor: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                },
-              },
+              responseAuthor: true,
             },
           },
-          author: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
+          author: true,
         },
       });
 

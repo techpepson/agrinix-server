@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Disease" ALTER COLUMN "accuracy" SET DATA TYPE DOUBLE PRECISION,
+ALTER COLUMN "diseasePredictionConfidence" SET DATA TYPE DOUBLE PRECISION;

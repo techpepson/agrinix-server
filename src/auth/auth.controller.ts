@@ -21,6 +21,8 @@ export class AuthController {
     return {
       message: loginService.message,
       token: loginService.token,
+      freqStatus: loginService.hasLoggedInBefore,
+      userId: loginService.userId,
     };
   }
 

@@ -193,6 +193,8 @@ export class ImageUploadProcessor extends WorkerHost {
       return {
         message: 'Model prediction successful',
         response: prediction.response,
+        class: capitalizedDiseaseClass,
+        cropName: capitalizedCropName,
         diseaseInfo: finalDiseaseInfo,
       };
     } catch (error) {
