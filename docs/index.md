@@ -1,3 +1,56 @@
+---
+title: 'Agrinix Server Documentation'
+layout: default
+permalink: /
+theme: jekyll-theme-cayman
+---
+
+<!-- HERO SECTION -->
+<div align="center" style="margin-bottom: 2em;">
+  <img src="https://nestjs.com/img/logo-small.svg" width="100" alt="NestJS Logo" style="margin-bottom: 0.5em;"/>
+  <h1 style="font-size:2.5em; margin-bottom:0.2em;">🌱 Agrinix Server</h1>
+  <p style="font-size:1.3em; color:#555; max-width:600px; margin:auto;">A robust, scalable API for crop disease detection, powered by AI and built with NestJS.</p>
+  <p>
+    <a href="#quick-start"><img src="https://img.shields.io/badge/Get%20Started-Quick%20Start-brightgreen" alt="Quick Start"/></a>
+    <a href="#api-documentation"><img src="https://img.shields.io/badge/API-Docs-blue" alt="API Docs"/></a>
+    <a href="#features"><img src="https://img.shields.io/badge/Features-Overview-yellow" alt="Features"/></a>
+  </p>
+</div>
+
+---
+
+<!-- NAVIGATION BAR -->
+<nav style="text-align:center; margin-bottom:2em; font-size:1.1em;">
+  <a href="#features">Features</a> |
+  <a href="#architecture">Architecture</a> |
+  <a href="#quick-start">Quick Start</a> |
+  <a href="#api-documentation">API</a> |
+  <a href="#development">Development</a> |
+  <a href="#deployment">Deployment</a> |
+  <a href="#contributing">Contributing</a>
+</nav>
+
+---
+
+<!-- BADGES -->
+<p align="center">
+  <img src="https://img.shields.io/badge/NestJS-11.0.1-red.svg" alt="NestJS"/>
+  <img src="https://img.shields.io/badge/Node.js-18+-green.svg" alt="Node.js"/>
+  <img src="https://img.shields.io/badge/TypeScript-5.7.3-blue.svg" alt="TypeScript"/>
+  <img src="https://img.shields.io/badge/PostgreSQL-13+-blue.svg" alt="PostgreSQL"/>
+  <img src="https://img.shields.io/badge/Redis-6+-red.svg" alt="Redis"/>
+  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="MIT License"/>
+</p>
+
+---
+
+<!-- CALL TO ACTION -->
+<div align="center" style="margin:2em 0;">
+  <a href="#quick-start" style="background:#2ecc40; color:white; padding:0.7em 2em; border-radius:5px; font-size:1.2em; text-decoration:none;">🚀 Get Started</a>
+</div>
+
+---
+
 # 🌱 Agrinix Server - Crop Disease Detection API
 
 [![NestJS](https://img.shields.io/badge/NestJS-11.0.1-red.svg)](https://nestjs.com/)
@@ -8,6 +61,8 @@
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 A robust and scalable NestJS server for the **Agrinix** crop disease detection application. This server processes crop leaf images through advanced AI models to detect diseases and provide comprehensive agricultural insights to help farmers protect their crops.
+
+---
 
 ## 🚀 Features
 
@@ -30,6 +85,8 @@ A robust and scalable NestJS server for the **Agrinix** crop disease detection a
 - **⚡ Caching**: Redis-based caching for improved performance
 - **📝 Logging**: Comprehensive logging system for debugging and monitoring
 
+---
+
 ## 🏗️ Architecture
 
 ```
@@ -50,6 +107,8 @@ A robust and scalable NestJS server for the **Agrinix** crop disease detection a
                        │   & Sessions    │    │   Analysis      │
                        └─────────────────┘    └─────────────────┘
 ```
+
+---
 
 ## 🛠️ Technology Stack
 
@@ -84,6 +143,8 @@ A robust and scalable NestJS server for the **Agrinix** crop disease detection a
 - **Jest** - Testing framework
 - **Prisma** - Database ORM and migrations
 
+---
+
 ## 📋 Prerequisites
 
 Before you begin, ensure you have the following installed:
@@ -93,6 +154,8 @@ Before you begin, ensure you have the following installed:
 - **PostgreSQL** (v13 or higher)
 - **Redis** (v6 or higher)
 - **Git**
+
+---
 
 ## 🚀 Quick Start
 
@@ -202,6 +265,8 @@ npm run start:debug
 
 The server will be available at `http://localhost:8000`
 
+---
+
 ## 📚 API Documentation
 
 ### Authentication Endpoints
@@ -285,6 +350,8 @@ GET /api/community/messages
 Authorization: Bearer <jwt_token>
 ```
 
+---
+
 ## 🔧 Development
 
 ### Project Structure
@@ -346,6 +413,8 @@ npx prisma studio         # Open Prisma Studio
 | `ROBOFLOW_PRIVATE_API_KEY` | Roboflow private API key     | ✅       |
 | `OPENROUTER_API_KEY`       | OpenRouter API key           | ✅       |
 
+---
+
 ## 🧪 Testing
 
 ### Running Tests
@@ -368,6 +437,8 @@ test/
 ├── app.e2e-spec.ts      # End-to-end tests
 └── jest-e2e.json        # Jest E2E configuration
 ```
+
+---
 
 ## 🚀 Deployment
 
@@ -410,6 +481,8 @@ CMD ["npm", "run", "start:prod"]
 5. Set up OpenRouter API access
 6. Configure email service (Gmail, SendGrid, etc.)
 
+---
+
 ## 📊 Monitoring & Logging
 
 ### Logging
@@ -434,6 +507,8 @@ GET /health
 - Rate limiting to prevent abuse
 - Request throttling for API protection
 
+---
+
 ## 🔒 Security Features
 
 - **JWT Authentication** - Secure token-based authentication
@@ -442,6 +517,8 @@ GET /health
 - **Input Validation** - Class-validator for request validation
 - **CORS Protection** - Cross-origin resource sharing protection
 <!-- - **Helmet** - Security headers middleware -->
+
+---
 
 ## 🤝 Contributing
 
@@ -458,15 +535,21 @@ GET /health
 - Write comprehensive tests for new features
 - Follow NestJS architectural patterns
 
+---
+
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
 
 ## 🆘 Support
 
 - **Documentation**: [NestJS Docs](https://docs.nestjs.com/)
 - **Issues**: [GitHub Issues](https://github.com/your-username/agrinix-server/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/your-username/agrinix-server/discussions)
+
+---
 
 ## 🙏 Acknowledgments
 
