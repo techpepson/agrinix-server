@@ -546,8 +546,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🆘 Support
 
 - **Documentation**: [NestJS Docs](https://docs.nestjs.com/)
-- **Issues**: [GitHub Issues](https://github.com/your-username/agrinix-server/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-username/agrinix-server/discussions)
+- **Issues**: [GitHub Issues](https://github.com/techpepson/agrinix-server/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/techpepson/agrinix-server/discussions)
 
 ---
 
