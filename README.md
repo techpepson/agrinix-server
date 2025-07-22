@@ -7,6 +7,9 @@
 [![Redis](https://img.shields.io/badge/Redis-6+-red.svg)](https://redis.io/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+### Documentation
+[Full documentation can be found here](https://docs.forxai.me)
+
 A robust and scalable NestJS server for the **Agrinix** crop disease detection application. This server processes crop leaf images through advanced AI models to detect diseases and provide comprehensive agricultural insights to help farmers protect their crops.
 
 ## 🚀 Features
