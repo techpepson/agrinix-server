@@ -15,7 +15,7 @@ export class RegisterDto {
   @IsEmail()
   email: string;
 
-  @IsStrongPassword()
+  // @IsStrongPassword()
   @IsNotEmpty()
   password: string;
 }

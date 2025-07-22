@@ -36,7 +36,7 @@ export class CropService {
       // if (!file.mimetype.startsWith('image/')) {
       //   throw new BadRequestException('Uploaded file must be an image');
       // }
-      const MAX_SIZE = 10 * 1024 * 1024;
+      const MAX_SIZE = 50 * 1024 * 1024;
       if (file.size > MAX_SIZE) {
         throw new BadRequestException('Image size must be less than 5MB');
       }
